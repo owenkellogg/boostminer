@@ -9,11 +9,23 @@ import { join } from 'path'
 
 import { platform } from 'os'
 
+import * as delay from 'delay'
+
 import * as bsv from 'bsv'
 
 import * as os from 'os'
 
+import * as powco  from './powco'
+
+import * as boostpow from 'boostpow'
+
 const publicIp = require('public-ip');
+
+import * as Minercraft from 'minercraft'
+
+const taal = new Minercraft({
+  "url": "https://merchantapi.taal.com"
+})
 
 function getBoostMiner(): string {
 
@@ -35,9 +47,7 @@ interface MiningParams {
   script: string;
   vout: number;
   value: number;
-  address: string;
   difficulty?: number;
-  wif: string;
   content?: string;
 }
 
@@ -145,9 +155,11 @@ export class MinerBase extends EventEmitter {
         params.value,
         `0x${params.txid}`,
         params.vout,
-        params.wif,
-        params.address
+        this.privatekey.toWIF(),
+        this.address.toString()
       ]
+
+      console.log('P', p)
 
       const ls = spawn(getBoostMiner(), p, {});
 
@@ -155,70 +167,87 @@ export class MinerBase extends EventEmitter {
 
         try {
 
-          let content = data.toString() 
+          let lines = data.toString().split("\n")
 
-          let json = JSON.parse(content)
+          for (let content of lines) {
 
-          this.emit(json.event, json);
-           
-          switch (json.event) {
-            case 'job.complete.redeemscript':
-              this.emit('job.complete.redeemscript', json)
-              break;
+            var json;
 
-            case 'job.complete.transaction':
+            try {
 
-              this.emit('job.complete.transaction', json)
-              return resolve(json)
-            default:
-              this.emit(json.event, json);
-              break;
-          }
+              json = JSON.parse(content)
 
-          if (content.match(/^hashes/)) {
+            } catch(error) {
 
-            let [ hashes, besthash ] = data.toString().split("\n").map(line => {
-              let parts = line.split(':')
-              return parts[parts.length - 1].trim()
-            })
+              continue;
 
-            this.emit('besthash', {
-              hashes,
-              besthash,
-              content: this.content,
-              difficulty: this.difficulty,
-              publickey: this.publickey,
-              os: {
-                arch: os.arch(),
-                cpus: os.cpus(),
-                platform: os.platform(),
-                network: os.networkInterfaces()
-              },
-              ipv4: await this.getIPv4()
-            })
+              console.log('json parse error', {error, content})
 
-            this.setHashrate({ hashes })
+            }
 
-          } else if (content.match(/^solution/)) {
+            console.log('CONTENT', content)
 
-            let solution = content.split(' ')[1].trim().replace('"', "")
+            this.emit(json.event, json);
+             
+            switch (json.event) {
+              case 'job.complete.redeemscript':
+                this.emit('job.complete.redeemscript', json)
+                break;
 
-            this.emit('solution', {
-              content: this.content,
-              difficulty: this.difficulty,
-              publickey: this.publickey,
-              solution,
-              os: {
-                arch: os.arch(),
-                cpus: os.cpus(),
-                platform: os.platform(),
-                network: os.networkInterfaces()
-              },
-              ipv4: await this.getIPv4()
-            })
+              case 'job.complete.transaction':
 
-          } else {
+                this.emit('job.complete.transaction', json)
+                return resolve(json)
+              default:
+                this.emit(json.event, json);
+                break;
+            }
 
+            if (content.match(/^hashes/)) {
+
+              let [ hashes, besthash ] = data.toString().split("\n").map(line => {
+                let parts = line.split(':')
+                return parts[parts.length - 1].trim()
+              })
+
+              this.emit('besthash', {
+                hashes,
+                besthash,
+                content: this.content,
+                difficulty: this.difficulty,
+                publickey: this.publickey,
+                os: {
+                  arch: os.arch(),
+                  cpus: os.cpus(),
+                  platform: os.platform(),
+                  network: os.networkInterfaces()
+                },
+                ipv4: await this.getIPv4()
+              })
+
+              this.setHashrate({ hashes })
+
+            } else if (content.match(/^solution/)) {
+
+              let solution = content.split(' ')[1].trim().replace('"', "")
+
+              this.emit('solution', {
+                content: this.content,
+                difficulty: this.difficulty,
+                publickey: this.publickey,
+                solution,
+                os: {
+                  arch: os.arch(),
+                  cpus: os.cpus(),
+                  platform: os.platform(),
+                  network: os.networkInterfaces()
+                },
+                ipv4: await this.getIPv4()
+              })
+
+            } else {
+
+            }
           }
 
         } catch(error) {
@@ -263,16 +292,18 @@ interface Job {
 
 export class Miner extends MinerBase {
 
-  async getNextJob(): Promise<MiningParams> {
+  async getNextJob(): Promise<any> {
 
-    return {
-      txid: '',
-      script: '',
-      vout: 0,
-      value: 10,
-      address: '',
-      wif: ''
-    }
+    let jobs = await powco.listAvailableJobs()
+
+    let item = jobs[Math.floor(Math.random() * jobs.length)] // random job
+
+    let tx = await powco.getTransaction(item.txid)
+
+    let job = boostpow.BoostPowJob.fromTransaction(tx)
+
+    return {job, tx}
+
   }
 
   async mineFromTxid(txid: string): Promise<Solution> {
@@ -285,17 +316,59 @@ export class Miner extends MinerBase {
 
       try {
 
-        let job = await this.getNextJob()
+        console.log('get next job')
 
-        let solution = await this.mine(job)
+        let {job, tx} = await this.getNextJob()
+
+        console.log('JOB', job)
+
+        let params = {
+          txid: job.txid,
+          script: tx.outputs[job.vout].script.toHex(),
+          vout: job.vout,
+          value: job.value,
+          content: job.content.hex
+        }
+
+        console.log('params', params)
+
+        let solution: any = await this.mine(params)
+
+        console.log('SOLUTION', solution)
+
+        var response = await taal.tx.push(solution.txhex)
+
+        console.log(response)
+
+        if (response.returnResult !== 'success' && response.conflictedWith.length >0){
+
+          let correctTx = response.conflictedWith[0].hex
+
+          response = await powco.submitBoostProofTransaction(correctTx)
+          
+          console.log('POWCO RESPONSE', response)
+
+        } else {
+
+          response = await powco.submitBoostProofTransaction(solution.txhex)
+
+          console.log("POWCO RESPONSE", response)
+
+        }
+
 
         // 1) broadcast solution
 
         // 2) push proof transaction to boost API service
 
       } catch(error) {
+        console.log(error)
+
         log.error(error)
+
       }
+      delay(1000)
+
     }
 
   }
