@@ -4,8 +4,10 @@ import * as bsv from 'bsv'
 
 export async function submitBoostProofTransaction(hex: string): Promise<any> {
 
-  let { body } = http.post('https://pow.co/node/api/boost_proof_transactions')
+  let { body } = await http.post('https://pow.co/node/api/boost_proof_transactions')
       .send({ transaction: hex })
+
+  console.log('submit boost proof response', body)
 
   return body
 
@@ -26,11 +28,7 @@ interface Job {
 
 export async function listAvailableJobs(): Promise<Job[]> {
 
-  console.log('LIST AVAILABLE')
-
-  let { body } = await http.get('https://pow.co/api/v1/jobs')
-
-  console.log(body)
+  let { body } = await http.get('https://pow.co/api/v0/mining/jobs')
 
   return body.jobs.map(job => {
     return Object.assign(job, { difficulty: parseFloat(job.difficulty) })

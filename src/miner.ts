@@ -132,7 +132,28 @@ export class MinerBase extends EventEmitter {
     
   }
 
-  mineFromTxid(txid: string) {
+  async mineFromTxid(txid: string) {
+
+    let tx = await powco.getTransaction(txid)
+
+    let job = boostpow.BoostPowJob.fromTransaction(tx)
+
+    this.mineJob(tx, job)
+
+  }
+
+  async mineJob(tx: bsv.Transaction, job: any) {
+
+    let params = {
+      txid: job.txid,
+      script: tx.outputs[job.vout].script.toHex(),
+      vout: job.vout,
+      value: job.value,
+      content: job.content.hex,
+      difficulty: job.difficulty
+    }
+
+    return this.mine(params)
 
   }
 
@@ -145,7 +166,7 @@ export class MinerBase extends EventEmitter {
       this.besthashes = 0
       this.besthashtime = new Date().getTime()
       this.content = params.content
-      this.difficulty = params.difficulty || 0.001
+      this.difficulty = params.difficulty
 
       log.info('miner.start', params)
 
@@ -158,8 +179,6 @@ export class MinerBase extends EventEmitter {
         this.privatekey.toWIF(),
         this.address.toString()
       ]
-
-      console.log('P', p)
 
       const ls = spawn(getBoostMiner(), p, {});
 
@@ -177,15 +196,15 @@ export class MinerBase extends EventEmitter {
 
               json = JSON.parse(content)
 
+              log.info(json)
+
             } catch(error) {
 
               continue;
 
-              console.log('json parse error', {error, content})
+              log.error({error, content})
 
             }
-
-            console.log('CONTENT', content)
 
             this.emit(json.event, json);
              
@@ -252,7 +271,7 @@ export class MinerBase extends EventEmitter {
 
         } catch(error) {
 
-          console.error(error)
+          log.error(error)
 
         }
 
@@ -306,55 +325,25 @@ export class Miner extends MinerBase {
 
   }
 
-  async mineFromTxid(txid: string): Promise<Solution> {
-    return {}
-  }
-
   async start() {
 
     for (;;) {
 
       try {
 
-        console.log('get next job')
-
         let {job, tx} = await this.getNextJob()
 
-        console.log('JOB', job)
-
-        let params = {
-          txid: job.txid,
-          script: tx.outputs[job.vout].script.toHex(),
-          vout: job.vout,
-          value: job.value,
-          content: job.content.hex
-        }
-
-        console.log('params', params)
-
-        let solution: any = await this.mine(params)
-
-        console.log('SOLUTION', solution)
+        let solution: any = await this.mineJob(tx, job)
 
         var response = await taal.tx.push(solution.txhex)
 
-        console.log(response)
+        response = await powco.submitBoostProofTransaction(solution.txhex)
 
-        if (response.returnResult !== 'success' && response.conflictedWith.length >0){
+        log.info('solution.submitted', solution)
+        
+        //let graphResponse = await boostpow.Graph().submitBoostSolution(solution.txhex)
 
-          let correctTx = response.conflictedWith[0].hex
-
-          response = await powco.submitBoostProofTransaction(correctTx)
-          
-          console.log('POWCO RESPONSE', response)
-
-        } else {
-
-          response = await powco.submitBoostProofTransaction(solution.txhex)
-
-          console.log("POWCO RESPONSE", response)
-
-        }
+        //console.log('GRAPH RESPONSE', graphResponse)
 
 
         // 1) broadcast solution
