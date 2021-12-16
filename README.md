@@ -18,3 +18,9 @@ Mines Boost Jobs on Your CPU
 
 ```
 
+### Running with Docker
+
+```
+docker run proofofwork/boostminer boostminer start
+
+```
