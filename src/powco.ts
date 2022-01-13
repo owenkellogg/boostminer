@@ -22,13 +22,20 @@ export async function submitJob(hex: string): Promise<any> {
 
 export async function submitBoostProofTransaction(hex: string): Promise<any> {
 
-  let { body } = await http.post('http://localhost:4001/node/api/work')
-  //let { body } = await http.post('https://pow.co/node/api/boost_proof_transactions')
+  let { body } = await http.post('https://pow.co/node/api/work')
       .send({ transaction: hex })
 
   console.log('submit boost proof response', body)
 
   return body
+
+}
+
+export async function getJob(txid: string): Promise<any> {
+
+  let { body } = await http.get(`https://pow.co/api/v1/jobs/${txid}`)
+
+  return body.job
 
 }
 
@@ -45,6 +52,7 @@ interface Job {
   spent: boolean;
 }
 
+
 export async function listAvailableJobs(): Promise<Job[]> {
 
   let { body } = await http.get('https://pow.co/api/v0/mining/jobs')
@@ -57,8 +65,6 @@ export async function listAvailableJobs(): Promise<Job[]> {
 }
 
 export async function getTransaction(txid: string): Promise<bsv.Transaction> {
-
-  console.log('GET TRANSACTION', txid)
 
   let { body } = await http.get(`https://pow.co/api/v1/tx/${txid}`)
 

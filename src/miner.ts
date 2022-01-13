@@ -5,6 +5,8 @@ const {EventEmitter} = require('events')
 
 import { log } from './log'
 
+import { Wallet } from './wallet'
+
 import { join } from 'path'
 
 import { platform } from 'os'
@@ -180,8 +182,6 @@ export class MinerBase extends EventEmitter {
         this.address.toString()
       ]
 
-      console.log(p)
-
       const ls = spawn(getBoostMiner(), p, {});
 
       ls.stdout.on('data', async (data) => {
@@ -333,6 +333,23 @@ export class Miner extends MinerBase {
 
     return {job, tx}
 
+  }
+
+  async workJob(txid: string): Promise<any> {
+
+    let jobRecord = await powco.getJob(txid)
+
+    if (jobRecord.spent) {
+      throw new Error('job already complete')
+    }
+
+    let tx = await powco.getTransaction(txid)
+
+    let job = boostpow.BoostPowJob.fromTransaction(tx)
+
+    let solution: any = await this.mineJob(tx, job)
+
+    return solution
   }
 
   async start() {
