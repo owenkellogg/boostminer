@@ -180,6 +180,8 @@ export class MinerBase extends EventEmitter {
         this.address.toString()
       ]
 
+      console.log(p)
+
       const ls = spawn(getBoostMiner(), p, {});
 
       ls.stdout.on('data', async (data) => {
@@ -314,12 +316,20 @@ export class Miner extends MinerBase {
   async getNextJob(): Promise<any> {
 
     let jobs = await powco.listAvailableJobs()
+    console.log(jobs);
 
-    let item = jobs[Math.floor(Math.random() * jobs.length)] // random job
+    //let item = jobs[Math.floor(Math.random() * jobs.length)] // random job
+    // TODO: Filter by jobs with a maximum difficulty
+    let item = jobs[0]
+    console.log('ITEM', item)
 
     let tx = await powco.getTransaction(item.txid)
 
+    console.log('TX', tx)
+
     let job = boostpow.BoostPowJob.fromTransaction(tx)
+    
+    console.log('JOB', job)
 
     return {job, tx}
 

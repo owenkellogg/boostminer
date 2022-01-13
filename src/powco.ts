@@ -2,9 +2,28 @@
 import * as http from 'superagent'
 import * as bsv from 'bsv'
 
+export async function submitJob(hex: string): Promise<any> {
+
+  try {
+
+    let { body } = await http.post('https://pow.co/node/api/jobs')
+        .send({ transaction: hex })
+
+    console.log('submit job response', body)
+
+    return body
+
+  } catch(error) {
+
+    console.log(error.response)
+  }
+
+}
+
 export async function submitBoostProofTransaction(hex: string): Promise<any> {
 
-  let { body } = await http.post('https://pow.co/node/api/boost_proof_transactions')
+  let { body } = await http.post('http://localhost:4001/node/api/work')
+  //let { body } = await http.post('https://pow.co/node/api/boost_proof_transactions')
       .send({ transaction: hex })
 
   console.log('submit boost proof response', body)
@@ -38,6 +57,8 @@ export async function listAvailableJobs(): Promise<Job[]> {
 }
 
 export async function getTransaction(txid: string): Promise<bsv.Transaction> {
+
+  console.log('GET TRANSACTION', txid)
 
   let { body } = await http.get(`https://pow.co/api/v1/tx/${txid}`)
 
