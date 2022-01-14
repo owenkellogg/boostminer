@@ -257,8 +257,6 @@ privatekey = program.opts()['privatekey'] || process.env.BOOSTMINER_PRIVATE_KEY
 
 if (!program.opts()['privatekey'] && !process.env.BOOSTMINER_PRIVATE_KEY) {
   let wallet = Wallet.init()
-  console.log('--privatekey option or BOOSTMINER_PRIVATE_KEY environment variable can be provided to override') 
-  process.exit(0)
 }
 
 address = program['address'] || process.env.BOOSTMINER_ADDRESS
