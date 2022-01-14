@@ -76,9 +76,24 @@ program
 
     log.info('boostminer.start', { address })
 
-    const miner = new Miner({ privatekey, address })
+    if (process.env.BOOSTMINER_PRIVATE_KEY) {
 
-    miner.start()
+      const miner = new Miner({ privatekey, address })
+
+      miner.start()
+    } else {
+
+      const wallet = Wallet.init()
+
+      const miner = new Miner({
+        privatekey: wallet.privatekey,
+        address: wallet.address
+      })
+
+      miner.start()
+
+    }
+
 
   })
 
@@ -100,11 +115,15 @@ async function workJob(txid: string) {
 
   try {
 
-    let wallet = Wallet.init()
 
     log.info('boostminer.workjob', { txid })
 
-    const miner = new Miner({ privatekey, address })
+    let wallet = Wallet.init()
+
+    const miner = new Miner({
+      privatekey: wallet.privatekey,
+      address: wallet.address
+    })
 
     let solution = await miner.workJob(txid)
 
@@ -140,7 +159,12 @@ program
 
     try {
 
-      const miner = new Miner({ privatekey, address })
+      let wallet = Wallet.init()
+
+      const miner = new Miner({
+        privatekey: wallet.privatekey,
+        address: wallet.address
+      })
 
       let result = await miner.mineFromTxid(txid)
 
