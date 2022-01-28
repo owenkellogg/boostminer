@@ -15,23 +15,39 @@ Mines Boost Jobs on Your CPU
 Usage: boostminer [options] [command]
 
 Options:
-  -p, --privatekey <privatekey>  miner private key
-  -a, --address <address>        miner payout address
-  -d, --difficulty <difficulty>  maximum difficulty
-  -h, --help                     display help for command
+  -p, --privatekey <privatekey>             miner private key
+  -a, --address <address>                   miner payout address
+  -d, --difficulty <difficulty>             maximum difficulty
+  -h, --help                                display help for command
 
 Commands:
+  upload <filepath>
   start
+  wallet
+  workjob <job_txid>
   job <txid>
-  help [command]                 display help for command
+  init
+  submitjob <txhex>
+  newjob <content> <difficulty> <satoshis>
+  help [command]                            display help for command
 ```
+## 
 
-### Configuring Secrets Via Environment Variables 
+### Initializing boostminer and Funding Wallet
 ```
-> export BOOSTMINER_PRIVATE_KEY=<bitcoin_private_key
+> boostminer init
 
+wallet address is <YOUR MINER ADDRESS>
+
+satoshis are required to fund new jobs
+
+```
+Send some satoshis so your miner can claim payment for work done
+
+### Running Boostminer
+
+```
 > boostminer start
-
 ```
 
 ### Running with Docker
