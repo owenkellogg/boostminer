@@ -26,7 +26,9 @@ jobs:
           command: npm run build
       - run:
           name: Authenticate with NPM
-          command: echo '//registry.npmjs.org/:_authToken=$NPM_CONFIG_TOKEN' >> .npmrc
+          command: |
+            echo '//registry.npmjs.org/:_authToken=$NPM_CONFIG_TOKEN' >> .npmrc
+            npm login
       - run:
           name: Push New Release To NPM 
           command: npm publish
