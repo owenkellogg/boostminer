@@ -25,8 +25,8 @@ jobs:
           name: Compile To Javascript For Release
           command: npm run build
       - run:
-          name: Login to NPM
-          command: npm login
+          name: Authenticate with NPM
+          command: echo '//registry.npmjs.org/:_authToken=$NPM_CONFIG_TOKEN' >> .npmrc
       - run:
           name: Push New Release To NPM 
           command: npm publish
