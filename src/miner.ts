@@ -58,7 +58,7 @@ interface MinerParams {
   address?: string;
 }
 
-export class MinerBase extends EventEmitter {
+export class MinerBase extends (EventEmitter as {new(): any}) {
 
   _stop = false
 
@@ -72,9 +72,10 @@ export class MinerBase extends EventEmitter {
 
   constructor(params: MinerParams) {
 
-    super()
+    super();
 
     this.privatekey = new bsv.PrivateKey(params.privatekey)
+    this.wallet = new Wallet(this.privatekey)
 
     if (params.address) {
       this.address = new bsv.Address(params.address)
@@ -202,9 +203,9 @@ export class MinerBase extends EventEmitter {
 
             } catch(error) {
 
-              continue;
-
               log.error({error, content})
+
+              continue;
 
             }
 
@@ -320,15 +321,30 @@ export class Miner extends MinerBase {
 
     //let item = jobs[Math.floor(Math.random() * jobs.length)] // random job
     // TODO: Filter by jobs with a maximum difficulty
-    let item = jobs[0]
-    console.log('ITEM', item)
 
-    let tx = await powco.getTransaction(item.txid)
+    var job, tx;
+    var i = 0;
 
-    console.log('TX', tx)
+    while (!job) {
 
-    let job = boostpow.BoostPowJob.fromTransaction(tx)
-    
+      let item = jobs[i]
+
+      console.log('ITEM', item)
+
+      if (item.difficulty > 1) {
+        return {}
+      }
+
+      tx = await powco.getTransaction(item.txid)
+
+      console.log('TX', tx)
+
+      job = boostpow.BoostPowJob.fromTransaction(tx)
+
+      i++
+      
+    }
+
     console.log('JOB', job)
 
     return {job, tx}
@@ -337,13 +353,15 @@ export class Miner extends MinerBase {
 
   async workJob(txid: string): Promise<any> {
 
-    let jobRecord = await powco.getJob(txid)
+    let jobRecord = await powco.getJob(txid, this.wallet)
 
     if (jobRecord.spent) {
       throw new Error('job already complete')
     }
 
     let tx = await powco.getTransaction(txid)
+
+    console.log({ txid, tx })
 
     let job = boostpow.BoostPowJob.fromTransaction(tx)
 
@@ -360,11 +378,16 @@ export class Miner extends MinerBase {
 
         let {job, tx} = await this.getNextJob()
 
+        if (!job) {
+          await delay(1000)
+          continue;
+        }
+
         let solution: any = await this.mineJob(tx, job)
 
-        var response = await taal.tx.push(solution.txhex)
+        //var response = await taal.tx.push(solution.txhex)
 
-        response = await powco.submitBoostProofTransaction(solution.txhex)
+        var response = await powco.submitBoostProofTransaction(solution.txhex)
 
         log.info('solution.submitted', solution)
         

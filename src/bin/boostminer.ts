@@ -144,7 +144,7 @@ program
   .command('workjob <job_txid>')
   .action(async (txid) => {
 
-    workJob(txid)
+    await workJob(txid)
 
     process.exit(0)
 
@@ -248,7 +248,7 @@ async function newJob(content, difficulty, satoshis) {
 
         if (ok) {
 
-          let resp = await workJob(response.record[0].txid)
+          let resp: any = await workJob(response.record[0].txid)
 
           resolve(resp)
 

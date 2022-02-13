@@ -1,6 +1,13 @@
 
 import * as bsv from 'bsv'
 
+const Message = require('bsv/message')
+
+interface SignedBuffer {
+  message: typeof Message;
+  signature: bsv.crypto.Signature;
+}
+
 export class Wallet {
   privatekey: bsv.PrivateKey;
 
@@ -63,6 +70,20 @@ export class Wallet {
   get address() {
 
     return this.privatekey.toAddress().toString()
+  }
+
+  signJSON(json): SignedBuffer {
+
+    const buffer = Buffer.from(JSON.stringify(json))
+
+    const message = new Message(buffer)
+
+    const signature = message.sign(this.privatekey)
+
+    return {
+      message, signature
+    }
+
   }
 }
 
