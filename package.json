@@ -1,8 +1,8 @@
 {
   "name": "boostminer",
-  "version": "0.3.6",
+  "version": "0.3.7",
   "description": "",
-  "main": "dist/bin/boostminer.js",
+  "main": "dist/index.js",
   "scripts": {
     "test": "mocha --require=ts-node/register src/tests/*_test.ts --timeout=10000",
     "build": "tsc"

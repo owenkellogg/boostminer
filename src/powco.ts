@@ -111,8 +111,8 @@ class ApiRequest {
 export async function getJob(txid: string, wallet: Wallet): Promise<any> {
   
 
-  //const url = `https://pow.co/api/v1/jobs/${txid}`
-  const url = `http://localhost:4001/node/v1/boost/jobs/${txid}`
+  const url = `https://pow.co/api/v1/jobs/${txid}`
+  //const url = `http://localhost:4001/node/v1/boost/jobs/${txid}`
 
   const nonce = v4();
 

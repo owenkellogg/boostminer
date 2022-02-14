@@ -141,7 +141,7 @@ export class MinerBase extends (EventEmitter as {new(): any}) {
 
     let job = boostpow.BoostPowJob.fromTransaction(tx)
 
-    this.mineJob(tx, job)
+    return this.mineJob(tx, job)
 
   }
 
