@@ -1,6 +1,7 @@
 version: 2.1
 jobs:
   build_docker:
+    working_directory: ~/repo
     docker:
       - image: circleci/node:12
     steps:
@@ -12,23 +13,26 @@ jobs:
       - run:
           name: Run Tests
           command: npm run test
+      - save_cache:
+          paths:
+            - node_modules
+          key: v1-dependencies-{{ checksum "package.json" }}
+
+      - persist_to_workspace:
+          root: ~/repo
+          paths: .
 
   deploy:
+    working_directory: ~/repo
     docker:
       - image: circleci/node:12
     steps:
-      - checkout
-      - run:
-          name: Install Dependencies
-          command: npm install
       - run:
           name: Compile To Javascript For Release
           command: npm run build
       - run:
-          name: Authenticate with NPM
-          command: |
-            echo '//registry.npmjs.org/:_authToken=$NPM_CONFIG_TOKEN' >> .npmrc
-            npm login
+          name: Authenticate with registry
+          command: echo "//registry.npmjs.org/:_authToken=$NPM_CONFIG_TOKEN" > ~/repo/.npmrc
       - run:
           name: Push New Release To NPM 
           command: npm publish
