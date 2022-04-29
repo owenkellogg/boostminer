@@ -1,6 +1,6 @@
 version: 2.1
 jobs:
-  build_docker:
+  test:
     working_directory: ~/repo
     docker:
       - image: circleci/node:12
@@ -13,16 +13,8 @@ jobs:
       - run:
           name: Run Tests
           command: npm run test
-      - save_cache:
-          paths:
-            - node_modules
-          key: v1-dependencies-{{ checksum "package.json" }}
 
-      - persist_to_workspace:
-          root: ~/repo
-          paths: .
-
-  deploy:
+  release:
     working_directory: ~/repo
     docker:
       - image: circleci/node:12
@@ -31,23 +23,20 @@ jobs:
           name: Compile To Javascript For Release
           command: npm run build
       - run:
-          name: Authenticate with registry
-          command: echo "//registry.npmjs.org/:_authToken=$NPM_CONFIG_TOKEN" > ~/repo/.npmrc
-      - run:
-          name: Push New Release To NPM 
-          command: npm publish
+          name: Push New Release To NPM and Tag in Git
+          command: npx semantic-release
 
 
 workflows:
   version: 2
-  build_and_deploy:
+  build_and_test:
     jobs:
-      - build_docker
-      - deploy:
+      - test
+      - release:
           requires:
-            - build_docker
+            - test
           filters:
             branches:
               only:
-                - release
+                - master
 
