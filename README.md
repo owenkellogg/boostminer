@@ -17,7 +17,6 @@ Usage: boostminer [options] [command]
 Options:
   -p, --privatekey <privatekey>             miner private key
   -a, --address <address>                   miner payout address
-  -d, --difficulty <difficulty>             maximum difficulty
   -h, --help                                display help for command
 
 Commands:
