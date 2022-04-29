@@ -13,6 +13,13 @@ jobs:
       - run:
           name: Run Tests
           command: npm run test
+      - save_cache:
+          paths:
+            - node_modules
+          key: v1-dependencies-{{ checksum "package.json" }}
+      - persist_to_workspace:
+          root: ~/repo
+          paths: .
 
   release:
     working_directory: ~/repo
