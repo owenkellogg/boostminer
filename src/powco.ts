@@ -9,7 +9,7 @@ export async function submitJob(hex: string): Promise<any> {
 
   try {
 
-    let { body } = await http.post('https://pow.co/node/api/jobs')
+    let { body } = await http.post('https://pow.co/api/v1/boost/jobs')
         .send({ transaction: hex })
 
     console.log('submit job response', body)
@@ -25,7 +25,7 @@ export async function submitJob(hex: string): Promise<any> {
 
 export async function submitBoostProofTransaction(hex: string): Promise<any> {
 
-  let { body } = await http.post('https://pow.co/node/api/work')
+  let { body } = await http.post('https://pow.co/api/v1/boost/work')
       .send({ transaction: hex })
 
   console.log('submit boost proof response', body)
@@ -111,7 +111,7 @@ class ApiRequest {
 export async function getJob(txid: string, wallet: Wallet): Promise<any> {
   
 
-  const url = `https://pow.co/api/v1/jobs/${txid}`
+  const url = `https://pow.co/api/v1/boost/jobs/${txid}`
   //const url = `http://localhost:4001/node/v1/boost/jobs/${txid}`
 
   const nonce = v4();
@@ -122,8 +122,6 @@ export async function getJob(txid: string, wallet: Wallet): Promise<any> {
     nonce
   })
   
-  console.log({ signature, message: message.toString() })
-
   let { body } = await http
     .get(url)
     .set({
@@ -131,8 +129,6 @@ export async function getJob(txid: string, wallet: Wallet): Promise<any> {
       'x-signature': signature,
       'x-message': message.toString()
     })
-
-  console.log({ body })
 
   return body.job
 

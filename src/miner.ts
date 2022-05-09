@@ -329,15 +329,11 @@ export class Miner extends MinerBase {
 
       let item = jobs[i]
 
-      console.log('ITEM', item)
-
       if (item.difficulty > 1) {
         return {}
       }
 
       tx = await powco.getTransaction(item.txid)
-
-      console.log('TX', tx)
 
       job = boostpow.BoostPowJob.fromTransaction(tx)
 
