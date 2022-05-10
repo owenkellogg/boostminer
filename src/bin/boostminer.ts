@@ -28,6 +28,8 @@ program
   .option('-p, --privatekey <privatekey>', 'miner private key')
   .option('-a, --address <address>', 'miner payout address')
   .option('-d, --difficulty <difficulty>', 'maximum difficulty')
+  .option('-c, --content <content>', 'only mine specific content')
+  .option('-t, --tag <tag>', 'only mine a specific tag')
 
 var privatekey, address;
 
@@ -76,11 +78,16 @@ program
 
     log.info('boostminer.start', { address })
 
+    const options = program.opts()
+
+    console.log({ options })
+
     if (process.env.BOOSTMINER_PRIVATE_KEY) {
 
       const miner = new Miner({ privatekey, address })
 
-      miner.start()
+      miner.start(options)
+
     } else {
 
       const wallet = Wallet.init()
@@ -90,7 +97,7 @@ program
         address: wallet.address
       })
 
-      miner.start()
+      miner.start(options)
 
     }
 

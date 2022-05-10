@@ -148,9 +148,13 @@ interface Job {
 }
 
 
-export async function listAvailableJobs(): Promise<Job[]> {
+export async function listAvailableJobs(options = {}): Promise<Job[]> {
 
-  let { body } = await http.get('https://pow.co/api/v1/boost/jobs')
+  const qs = Object.keys(options)
+  .map(key => `${key}=${options[key]}`)
+  .join('&');
+
+  let { body } = await http.get(`https://pow.co/api/v1/boost/jobs?${qs}`)
 
   return body.jobs.map(job => {
     return Object.assign(job, { difficulty: parseFloat(job.difficulty) })

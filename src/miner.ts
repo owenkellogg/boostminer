@@ -312,11 +312,16 @@ interface Job {
   value: number;
 }
 
+interface JobOptions {
+  content?: string;
+  tag?: string;
+}
+
 export class Miner extends MinerBase {
 
-  async getNextJob(): Promise<any> {
+  async getNextJob(options: JobOptions = {}): Promise<any> {
 
-    let jobs = await powco.listAvailableJobs()
+    let jobs = await powco.listAvailableJobs(options)
     console.log(jobs);
 
     //let item = jobs[Math.floor(Math.random() * jobs.length)] // random job
@@ -329,13 +334,17 @@ export class Miner extends MinerBase {
 
       let item = jobs[i]
 
+      console.log({ item })
+
       if (item.difficulty > 1) {
         return {}
       }
 
       tx = await powco.getTransaction(item.txid)
 
-      job = boostpow.BoostPowJob.fromTransaction(tx)
+      job = boostpow.BoostPowJob.fromTransaction(tx, item.vout)
+
+      console.log({job})
 
       i++
       
@@ -366,13 +375,14 @@ export class Miner extends MinerBase {
     return solution
   }
 
-  async start() {
+  async start(options: JobOptions = {}) {
 
     for (;;) {
 
       try {
 
-        let {job, tx} = await this.getNextJob()
+        //let {job, tx} = await this.getNextJob()
+        let {job, tx} = await this.getNextJob(options)
 
         if (!job) {
           await delay(1000)
