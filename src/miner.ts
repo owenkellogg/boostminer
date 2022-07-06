@@ -3,6 +3,12 @@ const { spawn } = require('child_process');
 
 const {EventEmitter} = require('events')
 
+const Run = require('run-sdk')
+
+const run = new Run({
+  network: 'main'
+})
+
 import { log } from './log'
 
 import { Wallet } from './wallet'
@@ -322,7 +328,6 @@ export class Miner extends MinerBase {
   async getNextJob(options: JobOptions = {}): Promise<any> {
 
     let jobs = await powco.listAvailableJobs(options)
-    console.log(jobs);
 
     //let item = jobs[Math.floor(Math.random() * jobs.length)] // random job
     // TODO: Filter by jobs with a maximum difficulty
@@ -334,25 +339,19 @@ export class Miner extends MinerBase {
 
       let item = jobs[i]
 
-      console.log({ item })
-
       if (item.difficulty > 1) {
         return {}
       }
 
-      tx = await powco.getTransaction(item.txid)
-
-      job = boostpow.BoostPowJob.fromTransaction(tx, item.vout)
-
-      console.log({job})
+      job = item
 
       i++
       
     }
 
-    console.log('JOB', job)
+    console.log('job', job)
 
-    return {job, tx}
+    return {job}
 
   }
 
@@ -382,36 +381,78 @@ export class Miner extends MinerBase {
       try {
 
         //let {job, tx} = await this.getNextJob()
-        let {job, tx} = await this.getNextJob(options)
+        let {job} = await this.getNextJob(options)
 
         if (!job) {
           await delay(1000)
           continue;
         }
 
-        let solution: any = await this.mineJob(tx, job)
+        let params: MiningParams = {
+          txid: job.txid,
+          script: job.script,
+          vout: job.vout,
+          value: job.value
+        }
 
-        //var response = await taal.tx.push(solution.txhex)
+        console.log('mining.params', params)
 
-        var response = await powco.submitBoostProofTransaction(solution.txhex)
+        let solution: any = await this.mine(params)
+
+        try {
+
+          let response = await run.blockchain.broadcast(solution.txhex)
+
+          console.log('run.blockchain.broadcast.response', response)
+
+        } catch(error) {
+
+          console.error('run.blockchain.broadcast.error', error)
+
+        }
+
+        try {
+
+          var response = await taal.tx.push(solution.txhex)
+
+          console.log('taal.success.response', response)
+
+          console.log('taal.response', {
+            statusCode: response.status,
+            data: response.data
+          })
+
+        } catch(error) {
+
+          console.error('taal.error', {
+            statusCode: error.response.status,
+            message: error.response.data.message
+          })
+
+        }
+
+        try {
+
+          var response = await powco.submitBoostProofTransaction(solution.txhex)
+
+          console.log('powco.response', response)
+
+        } catch(error) {
+
+          console.error('powco.error', error)
+
+        }
 
         log.info('solution.submitted', solution)
         
-        //let graphResponse = await boostpow.Graph().submitBoostSolution(solution.txhex)
-
-        //console.log('GRAPH RESPONSE', graphResponse)
-
-
-        // 1) broadcast solution
-
-        // 2) push proof transaction to boost API service
-
       } catch(error) {
-        console.log(error)
+
+        console.error(error)
 
         log.error(error)
 
       }
+
       delay(1000)
 
     }
