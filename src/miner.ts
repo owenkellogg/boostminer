@@ -1,6 +1,8 @@
 
 const { spawn } = require('child_process');
 
+import config from './config'
+
 const {EventEmitter} = require('events')
 
 const Run = require('run-sdk')
@@ -189,7 +191,28 @@ export class MinerBase extends (EventEmitter as {new(): any}) {
         this.address.toString()
       ]
 
-      const ls = spawn(getBoostMiner(), p, {});
+      const useDocker = true
+
+      const ls = (() => {
+
+        if (config.get('docker_miner_enabled')) {
+
+          log.debug('docker_miner_enabled')
+
+          let params = [
+            'run',
+            'proofofwork/boostminer:v0.1.0',
+            './bin/BoostMiner'
+          ].concat(p)
+
+          return spawn('docker', params, {});
+
+        } else {
+
+          return spawn(getBoostMiner(), p, {});
+
+        }
+      })()
 
       ls.stdout.on('data', async (data) => {
 
@@ -287,9 +310,24 @@ export class MinerBase extends (EventEmitter as {new(): any}) {
       });
 
       ls.stderr.on('data', (data) => {
-        this.emit('error', data)
-        if (!this._stop) {
-          this.mine(this.miningParams)
+
+        console.log('ERROR!', data.toString())
+        console.log('ERROR! UTF8', data.toString('utf8'))
+        console.log('ERROR! HEX', data.toString('hex'))
+
+        try {
+
+          console.log(data)
+
+          this.emit('error', data)
+
+          if (!this._stop) {
+            this.mine(this.miningParams)
+          }
+        } catch(error) {
+
+          console.error(error)
+
         }
       });
 
