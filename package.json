@@ -4,12 +4,22 @@
   "description": "",
   "main": "dist/index.js",
   "scripts": {
-    "test": "mocha --require=ts-node/register src/tests/*_test.ts --timeout=10000",
+    "test": "nyc --reporter=lcov mocha --require=ts-node/register src/tests/*_test.ts --timeout=10000",
     "build": "tsc",
     "postbuild": "shebang-trim dist/bin/boostminer.js"
   },
   "bin": {
     "boostminer": "./dist/bin/boostminer.js"
+  },
+  "nyc": {
+    "check-coverage": false,
+    "all": true,
+    "include": [
+      "src/*.ts",
+      "src/**/*.ts"
+    ],
+    "reporter": "lcov",
+    "report-dir": "./coverage"
   },
   "keywords": [],
   "author": "",
@@ -35,6 +45,7 @@
     "@types/mocha": "^9.1.0",
     "cz-conventional-changelog": "^3.3.0",
     "mocha": "^9.2.0",
+    "nyc": "^15.1.0",
     "semantic-release": "^19.0.2",
     "shebang-trim": "^1.1.0",
     "ts-node": "^10.5.0",

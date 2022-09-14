@@ -17,6 +17,12 @@ jobs:
           name: Compile To Javascript For Release
           command: npm run build
       - run:
+          name: Report Code Coverage
+          command: |
+            curl -Os https://uploader.codecov.io/latest/linux/codecov
+            chmod +x codecov
+            ./codecov
+      - run:
           name: Push New Release To NPM and Tag in Git
           command: npx semantic-release
 
