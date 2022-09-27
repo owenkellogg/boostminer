@@ -37,6 +37,16 @@ export async function submitBoostProofTransaction(hex: string): Promise<any> {
 
 }
 
+export async function submitBoostProofTxid(txid: string): Promise<any> {
+
+  let { body } = await http.post(`https://pow.co/api/v1/boost/proofs/${txid}`)
+
+  console.log('submit boost proof response', body)
+
+  return body
+
+}
+
 interface NewApiRequest {
   http_method: string;
   method: string;

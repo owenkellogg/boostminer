@@ -23,6 +23,7 @@ const prompt = require("prompt-async");
 import { uploadFile } from '../uploader'
 
 import * as bsv from 'bsv'
+import { broadcast } from 'powco'
 
 program
   .option('-p, --privatekey <privatekey>', 'miner private key')
@@ -136,9 +137,43 @@ async function workJob(txid: string) {
 
     log.info('solution', solution)
 
-    let response = await powco.submitBoostProofTransaction(solution.txhex)
+    let broadcastResult = await broadcast(solution.txhex);
 
-    console.log(response)
+    console.log({ broadcastResult });
+
+    let submitBoostProofTxidResponse = await powco.submitBoostProofTxid(broadcastResult)
+
+    console.log({ submitBoostProofTxidResponse });
+
+    (async () => {
+
+      try {
+
+        let txidResponse = await powco.submitBoostProofTxid(solution.txid)
+
+        console.log({ txidResponse })
+    
+      } catch(error) {
+
+        console.error(error)
+
+      }
+    })();
+
+    (async () => {
+
+      try {
+
+        let submitBoostProofTransactionResponse = await powco.submitBoostProofTransaction(solution.txhex)
+
+        console.log({ submitBoostProofTransactionResponse })
+    
+      } catch(error) {
+
+        console.error(error)
+
+      }
+    })()
 
   } catch(error) {
 
