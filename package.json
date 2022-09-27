@@ -34,6 +34,7 @@
     "filepay": "^2.2.12",
     "minercraft": "^0.0.8",
     "nconf": "^0.12.0",
+    "powco": "^1.2.0",
     "prompt-async": "^0.9.9",
     "public-ip": "^4.0.4",
     "run-sdk": "^0.6.38",

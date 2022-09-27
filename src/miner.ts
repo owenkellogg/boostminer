@@ -32,6 +32,7 @@ import * as boostpow from 'boostpow'
 const publicIp = require('public-ip');
 
 import * as Minercraft from 'minercraft'
+import { fetch } from 'powco';
 
 const taal = new Minercraft({
   "url": "https://merchantapi.taal.com"
@@ -145,11 +146,11 @@ export class MinerBase extends (EventEmitter as {new(): any}) {
 
   async mineFromTxid(txid: string) {
 
-    let tx = await powco.getTransaction(txid)
+    let hex = await fetch(txid)
 
-    let job = boostpow.BoostPowJob.fromTransaction(tx)
+    let job = boostpow.BoostPowJob.fromTransaction(hex)
 
-    return this.mineJob(tx, job)
+    return this.mineJob(hex, job)
 
   }
 
@@ -361,33 +362,24 @@ interface JobOptions {
   tag?: string;
 }
 
+const maxDifficulty = 1
+
 export class Miner extends MinerBase {
 
   async getNextJob(options: JobOptions = {}): Promise<any> {
 
     let jobs = await powco.listAvailableJobs(options)
 
-    //let item = jobs[Math.floor(Math.random() * jobs.length)] // random job
+    jobs = jobs.filter(job => {
+      return job.difficulty <= maxDifficulty
+    })
+    .sort((a, b) => {
+      return a.profitability > b.profitability ? 1 : -1
+    })
+    .slice(0, 20)
+
+    const job = jobs[Math.floor(Math.random() * jobs.length)] // random job
     // TODO: Filter by jobs with a maximum difficulty
-
-    var job, tx;
-    var i = 0;
-
-    while (!job) {
-
-      let item = jobs[i]
-
-      if (item.difficulty > 1) {
-        return {}
-      }
-
-      job = item
-
-      i++
-      
-    }
-
-    console.log('job', job)
 
     return {job}
 
@@ -401,11 +393,17 @@ export class Miner extends MinerBase {
       throw new Error('job already complete')
     }
 
+    const txhex = await fetch(txid)
+
     let tx = await powco.getTransaction(txid)
 
     console.log({ txid, tx })
 
-    let job = boostpow.BoostPowJob.fromTransaction(tx)
+    console.log("fromTransaction", txhex)
+
+    let job = boostpow.BoostPowJob.fromTransaction(txhex)
+
+    console.log('jerb', job)
 
     let solution: any = await this.mineJob(tx, job)
 
@@ -414,12 +412,14 @@ export class Miner extends MinerBase {
 
   async start(options: JobOptions = {}) {
 
-    for (;;) {
+    while (true) {
 
       try {
 
         //let {job, tx} = await this.getNextJob()
         let {job} = await this.getNextJob(options)
+
+        console.log({ job })
 
         if (!job) {
           await delay(1000)
@@ -437,49 +437,58 @@ export class Miner extends MinerBase {
 
         let solution: any = await this.mine(params)
 
-        try {
+        ;(async () => {
+          try {
 
-          let response = await run.blockchain.broadcast(solution.txhex)
+            let response = await run.blockchain.broadcast(solution.txhex)
 
-          console.log('run.blockchain.broadcast.response', response)
+            console.log('run.blockchain.broadcast.response', response)
 
-        } catch(error) {
+          } catch(error) {
 
-          console.error('run.blockchain.broadcast.error', error)
+            console.error('run.blockchain.broadcast.error', error)
 
-        }
+          }
+        })()
 
-        try {
+        ;(async () => {
 
-          var response = await taal.tx.push(solution.txhex)
+          try {
 
-          console.log('taal.success.response', response)
+            var response = await taal.tx.push(solution.txhex)
 
-          console.log('taal.response', {
-            statusCode: response.status,
-            data: response.data
-          })
+            console.log('taal.success.response', response)
 
-        } catch(error) {
+            console.log('taal.response', {
+              statusCode: response.status,
+              data: response.data
+            })
 
-          console.error('taal.error', {
-            statusCode: error.response.status,
-            message: error.response.data.message
-          })
+          } catch(error) {
 
-        }
+            console.error('taal.error', {
+              statusCode: error.response.status,
+              message: error.response.data.message
+            })
 
-        try {
+          }
+        })()
 
-          var response = await powco.submitBoostProofTransaction(solution.txhex)
+        ;(async () => {
 
-          console.log('powco.response', response)
+          try {
 
-        } catch(error) {
+            var response = await powco.submitBoostProofTransaction(solution.txhex)
 
-          console.error('powco.error', error)
+            console.log('powco.response', response)
 
-        }
+          } catch(error) {
+
+            console.error('powco.error', error)
+
+          }
+
+        })()
 
         log.info('solution.submitted', solution)
         
@@ -491,7 +500,9 @@ export class Miner extends MinerBase {
 
       }
 
-      delay(1000)
+      console.log('about to delay')
+
+      await delay(1000)
 
     }
 

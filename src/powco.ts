@@ -3,7 +3,10 @@ import * as http from 'superagent'
 import * as bsv from 'bsv'
 import { Wallet } from './wallet'
 
+import { fetch } from 'powco'
+
 import { v4 } from 'uuid'
+import { FileWatcherEventKind } from 'typescript'
 
 export async function submitJob(hex: string): Promise<any> {
 
@@ -25,7 +28,7 @@ export async function submitJob(hex: string): Promise<any> {
 
 export async function submitBoostProofTransaction(hex: string): Promise<any> {
 
-  let { body } = await http.post('https://pow.co/api/v1/boost/work')
+  let { body } = await http.post('https://pow.co/api/v1/boost/proofs')
       .send({ transaction: hex })
 
   console.log('submit boost proof response', body)
@@ -145,6 +148,7 @@ interface Job {
   additionalData: string;
   script: string;
   spent: boolean;
+  profitability: number;
 }
 
 
@@ -165,32 +169,9 @@ export async function listAvailableJobs(options = {}): Promise<Job[]> {
 
 export async function getTransaction(txid: string, wallet?: Wallet): Promise<bsv.Transaction> {
 
-  const url = `https://pow.co/api/v1/tx/${txid}`
+  const hex = await fetch(txid)
 
-  const request = http.get(url)
-
-  if (wallet) {
-
-    const nonce = v4()
-
-    const signature = wallet.signJSON({
-      method: 'gettx',
-      payload: { txid, url },
-      nonce
-    })
-
-    let { body } = await request.set({
-      'x-signature': signature
-    })
-
-    return new bsv.Transaction(body.txhex)
-
-  } else {
-
-    let { body } = await request
-    return new bsv.Transaction(body.txhex)
-
-  }
+  return new bsv.Transaction(hex)
 
 }
 
