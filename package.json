@@ -37,7 +37,7 @@
     "nconf": "^0.12.0",
     "powco": "^1.2.0",
     "prompt-async": "^0.9.9",
-    "public-ip": "^4.0.4",
+    "public-ip": "^6.0.1",
     "run-sdk": "^0.6.38",
     "superagent": "^6.1.0",
     "winston": "^3.3.3",
