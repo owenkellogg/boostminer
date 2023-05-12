@@ -93,9 +93,16 @@ program
 
       const wallet = Wallet.init()
 
+      var maxDifficulty;
+
+      if (options.difficulty) {
+	 maxDifficulty = parseFloat(options.difficulty) 
+      }
+
       const miner = new Miner({
         privatekey: wallet.privatekey,
-        address: wallet.address
+        address: wallet.address,
+	maxDifficulty
       })
 
       miner.start(options)

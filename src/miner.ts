@@ -58,13 +58,14 @@ interface MiningParams {
   script: string;
   vout: number;
   value: number;
-  difficulty?: number;
+  maxDifficulty?: number;
   content?: string;
 }
 
 interface MinerParams {
   privatekey: string;
   address?: string;
+  maxDifficulty?: number;
 }
 
 export class MinerBase extends (EventEmitter as {new(): any}) {
@@ -91,6 +92,8 @@ export class MinerBase extends (EventEmitter as {new(): any}) {
     } else {
       this.address = this.privatekey.toAddress()
     }
+
+    this.maxDifficulty = params.maxDifficulty
 
   }
 
@@ -178,7 +181,7 @@ export class MinerBase extends (EventEmitter as {new(): any}) {
       this.besthashes = 0
       this.besthashtime = new Date().getTime()
       this.content = params.content
-      this.difficulty = params.difficulty
+      this.maxDifficulty = params.maxDifficulty
 
       log.info('miner.start', params)
 
@@ -205,6 +208,8 @@ export class MinerBase extends (EventEmitter as {new(): any}) {
             'proofofwork/boostminer:v0.1.0',
             './bin/BoostMiner'
           ].concat(p)
+
+	  console.log(params)
 
           return spawn('docker', params, {});
 
@@ -312,13 +317,7 @@ export class MinerBase extends (EventEmitter as {new(): any}) {
 
       ls.stderr.on('data', (data) => {
 
-        console.log('ERROR!', data.toString())
-        console.log('ERROR! UTF8', data.toString('utf8'))
-        console.log('ERROR! HEX', data.toString('hex'))
-
         try {
-
-          console.log(data)
 
           this.emit('error', data)
 
@@ -362,16 +361,15 @@ interface JobOptions {
   tag?: string;
 }
 
-const maxDifficulty = 1
-
 export class Miner extends MinerBase {
 
   async getNextJob(options: JobOptions = {}): Promise<any> {
 
-    let jobs = await powco.listAvailableJobs(options)
+    let jobs = await powco.listAvailableJobs(Object.assign(options, { limit: 1000 }))
 
     jobs = jobs.filter(job => {
-      return job.difficulty <= maxDifficulty
+
+      return job.value > 500 && job.difficulty <= this.maxDifficulty
     })
     .sort((a, b) => {
       return a.profitability > b.profitability ? 1 : -1
@@ -379,7 +377,6 @@ export class Miner extends MinerBase {
     .slice(0, 20)
 
     const job = jobs[Math.floor(Math.random() * jobs.length)] // random job
-    // TODO: Filter by jobs with a maximum difficulty
 
     return {job}
 
@@ -399,11 +396,7 @@ export class Miner extends MinerBase {
 
     console.log({ txid, tx })
 
-    console.log("fromTransaction", txhex)
-
     let job = boostpow.BoostPowJob.fromTransaction(txhex)
-
-    console.log('jerb', job)
 
     let solution: any = await this.mineJob(tx, job)
 
@@ -416,15 +409,15 @@ export class Miner extends MinerBase {
 
       try {
 
-        //let {job, tx} = await this.getNextJob()
         let {job} = await this.getNextJob(options)
 
-        console.log({ job })
 
         if (!job) {
           await delay(1000)
           continue;
         }
+
+        console.log({ job })
 
         let params: MiningParams = {
           txid: job.txid,
@@ -499,8 +492,6 @@ export class Miner extends MinerBase {
         log.error(error)
 
       }
-
-      console.log('about to delay')
 
       await delay(1000)
 
