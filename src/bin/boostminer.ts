@@ -1,5 +1,7 @@
 #!/usr/bin/env ts-node
 
+require('dotenv').config()
+
 import { program } from 'commander'
 
 import * as yesno from 'yesno'
@@ -28,7 +30,7 @@ import { broadcast } from 'powco'
 program
   .option('-p, --privatekey <privatekey>', 'miner private key')
   .option('-a, --address <address>', 'miner payout address')
-  .option('-d, --difficulty <difficulty>', 'maximum difficulty')
+  .option('-d, --difficulty <maxDifficulty>', 'maximum difficulty')
   .option('-c, --content <content>', 'only mine specific content')
   .option('-t, --tag <tag>', 'only mine a specific tag')
 

@@ -25,9 +25,13 @@ import * as bsv from 'bsv'
 
 import * as os from 'os'
 
+import axios from 'axios'
+
 import * as powco  from './powco'
 
 import * as boostpow from 'boostpow'
+
+import { broadcast } from 'powco'
 
 const publicIp = require('public-ip');
 
@@ -206,6 +210,8 @@ export class MinerBase extends (EventEmitter as {new(): any}) {
             './bin/BoostMiner'
           ].concat(p)
 
+	  console.log(params)
+
           return spawn('docker', params, {});
 
         } else {
@@ -359,10 +365,14 @@ interface Job {
 
 interface JobOptions {
   content?: string;
+  maxDifficulty?: number;
+  minValue?: number;
+  minProfitability?: number;
   tag?: string;
+  limit?: number;
 }
 
-const maxDifficulty = 1
+const maxDifficulty = 0.01
 
 export class Miner extends MinerBase {
 
@@ -371,10 +381,11 @@ export class Miner extends MinerBase {
     let jobs = await powco.listAvailableJobs(options)
 
     jobs = jobs.filter(job => {
-      return job.difficulty <= maxDifficulty
+      return job.value > 500 && job.difficulty <= maxDifficulty
     })
     .sort((a, b) => {
-      return a.profitability > b.profitability ? 1 : -1
+	   //@ts-ignore
+      return new Date(b.timestamp) - new Date(a.timestamp)
     })
     .slice(0, 20)
 
@@ -397,13 +408,7 @@ export class Miner extends MinerBase {
 
     let tx = await powco.getTransaction(txid)
 
-    console.log({ txid, tx })
-
-    console.log("fromTransaction", txhex)
-
     let job = boostpow.BoostPowJob.fromTransaction(txhex)
-
-    console.log('jerb', job)
 
     let solution: any = await this.mineJob(tx, job)
 
@@ -416,15 +421,18 @@ export class Miner extends MinerBase {
 
       try {
 
-        //let {job, tx} = await this.getNextJob()
-        let {job} = await this.getNextJob(options)
-
-        console.log({ job })
+        let {job} = await this.getNextJob({
+		maxDifficulty : options.maxDifficulty || 0.01,
+		limit: options.limit || 1000,
+		minValue: 500
+	})
 
         if (!job) {
           await delay(1000)
           continue;
         }
+
+	console.log('job.mine', job)
 
         let params: MiningParams = {
           txid: job.txid,
@@ -440,36 +448,13 @@ export class Miner extends MinerBase {
         ;(async () => {
           try {
 
-            let response = await run.blockchain.broadcast(solution.txhex)
+            let response = await broadcast(solution.txhex)
 
-            console.log('run.blockchain.broadcast.response', response)
+	    axios.post(`https://pow.co/api/v1/boost/proofs/${response}`)
 
           } catch(error) {
 
             console.error('run.blockchain.broadcast.error', error)
-
-          }
-        })()
-
-        ;(async () => {
-
-          try {
-
-            var response = await taal.tx.push(solution.txhex)
-
-            console.log('taal.success.response', response)
-
-            console.log('taal.response', {
-              statusCode: response.status,
-              data: response.data
-            })
-
-          } catch(error) {
-
-            console.error('taal.error', {
-              statusCode: error.response.status,
-              message: error.response.data.message
-            })
 
           }
         })()

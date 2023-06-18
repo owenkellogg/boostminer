@@ -168,7 +168,11 @@ export async function listAvailableJobs(options = {}): Promise<Job[]> {
   .map(key => `${key}=${options[key]}`)
   .join('&');
 
-  let { body } = await http.get(`https://pow.co/api/v1/boost/jobs?${qs}`)
+  const url = `https://pow.co/api/v1/boost/jobs?${qs}`
+
+  console.log('listAvailableJobs', {url})
+
+  let { body } = await http.get(url)
 
   return body.jobs.map(job => {
     return Object.assign(job, { difficulty: parseFloat(job.difficulty) })
