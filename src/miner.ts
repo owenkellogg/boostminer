@@ -35,6 +35,8 @@ import { broadcast } from 'powco'
 
 const publicIp = require('public-ip');
 
+import { getSpend } from './whatsonchain'
+
 import * as Minercraft from 'minercraft'
 import { fetch } from 'powco';
 
@@ -372,7 +374,7 @@ interface JobOptions {
   limit?: number;
 }
 
-const maxDifficulty = 0.01
+const maxDifficulty = 0.1
 
 export class Miner extends MinerBase {
 
@@ -389,8 +391,26 @@ export class Miner extends MinerBase {
     })
     .slice(0, 20)
 
+    console.log(jobs.length, 'LENGTH')
+
+    for (let job of jobs){ console.log(job)}
+
     const job = jobs[Math.floor(Math.random() * jobs.length)] // random job
     // TODO: Filter by jobs with a maximum difficulty
+
+    const { txid, vout } = job
+
+    const spend = await getSpend({ txid, vout })
+
+    if (spend) {
+    
+      const { data } = await axios.post(`https://pow.co/api/v1/boost/proofs/${spend.txid}`)
+
+      console.log('proof.imported', data)
+
+      return this.getNextJob(options)
+
+    }
 
     return {job}
 
@@ -408,7 +428,9 @@ export class Miner extends MinerBase {
 
     let tx = await powco.getTransaction(txid)
 
-    let job = boostpow.BoostPowJob.fromTransaction(txhex)
+    console.log('workJob', jobRecord.toJSON())
+
+    let job = boostpow.BoostPowJob.fromTransaction(txhex, jobRecord.vout)
 
     let solution: any = await this.mineJob(tx, job)
 
@@ -422,7 +444,7 @@ export class Miner extends MinerBase {
       try {
 
         let {job} = await this.getNextJob({
-		maxDifficulty : options.maxDifficulty || 0.01,
+		maxDifficulty : options.maxDifficulty || 0.1,
 		limit: options.limit || 1000,
 		minValue: 500
 	})
@@ -450,11 +472,13 @@ export class Miner extends MinerBase {
 
             let response = await broadcast(solution.txhex)
 
-	    axios.post(`https://pow.co/api/v1/boost/proofs/${response}`)
+            const { data } = await axios.post(`https://pow.co/api/v1/boost/proofs/${response}`)
+
+            console.log('powco.proofs.post.response', data)
 
           } catch(error) {
 
-            console.error('run.blockchain.broadcast.error', error)
+            console.error('powco.proofs.post.error', error)
 
           }
         })()

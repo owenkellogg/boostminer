@@ -16,6 +16,8 @@ import { log } from '../log'
 
 import { submitJob } from '../powco'
 
+import { getSpend } from '../whatsonchain'
+
 import * as boost from 'boostpow'
 
 const filepay = require('filepay')
@@ -316,6 +318,28 @@ program
   .action(async (content, difficulty, satoshis) => {
 
     await newJob(content, difficulty, satoshis)
+
+  })
+
+program
+  .command('get-spend <location>')
+  .action(async (location) => {
+
+    const [txid, vout] = location.split('_')
+
+    try {
+
+      const result = await getSpend({ txid, vout })
+
+      console.log(result)
+
+    } catch(error) {
+
+      console.error(error)
+
+    }
+
+    process.exit(0)
 
   })
 
